@@ -1,0 +1,24 @@
+name: tuhe-bridge
+
+services:
+  bridge:
+    build: .
+    image: tuhe-bridge:1.0.0
+    container_name: tuhe-bridge
+    ports:
+      - "8790:8790"
+    environment:
+      BRIDGE_PORT: "8790"
+      BRIDGE_DATA_DIR: /app/data
+      TZ: Asia/Shanghai
+      BRIDGE_WEBHOOK_TOKEN: "${BRIDGE_WEBHOOK_TOKEN:-}"
+      BRIDGE_ADMIN_TOKEN: "${BRIDGE_ADMIN_TOKEN:-}"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8790/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s

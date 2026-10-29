@@ -1,0 +1,12 @@
+services:
+  tuhe:
+    build: .
+    ports:
+      - "8787:8787"
+    environment:
+      TUHE_PORT: "8787"
+      TUHE_DATA_DIR: /app/data
+      TUHE_DEMO: "1"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

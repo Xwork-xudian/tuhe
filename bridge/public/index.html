@@ -1,0 +1,1165 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>途合桥接器 · Cookie Webhook Bridge</title>
+<link rel="stylesheet" href="/fonts/noto-sans-sc.css" />
+<style>
+:root {
+  --paper:#f4efe5; --surface:#fffdf8; --ink:#2f3a32; --muted:#7f857a; --muted2:#a39d91;
+  --line:#e7dfd1; --accent:#b95f35; --accent-soft:#f7e9df; --moss:#3f7c61; --moss-soft:#e8f1eb;
+  --danger:#a64f45; --danger-soft:#faebe8; --ochre:#b98332; --ochre-soft:#fbf1e0;
+  --shadow:0 18px 50px rgba(47,58,50,.08); --radius:16px;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--paper); color:var(--ink); font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+button, input, textarea, select { font:inherit; }
+button { cursor:pointer; }
+.page { max-width:1240px; margin:0 auto; padding:26px 30px 60px; }
+.topbar { display:flex; align-items:center; gap:16px; padding-bottom:20px; border-bottom:1px solid var(--line); }
+.brand { display:flex; align-items:center; gap:11px; }
+.brand-mark { width:42px; height:42px; border-radius:12px; display:grid; place-items:center; background:#324137; color:#f6eedd; font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif; font-size:19px; letter-spacing:.02em; box-shadow:0 8px 20px rgba(47,58,50,.18); }
+.brand h1 { margin:0; font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif; font-size:19px; font-weight:600; letter-spacing:.01em; }
+.brand p { margin:2px 0 0; font-size:10px; color:var(--muted2); letter-spacing:.09em; text-transform:uppercase; }
+.topbar-right { margin-left:auto; display:flex; align-items:center; gap:10px; }
+.health { display:flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--line); border-radius:999px; background:var(--surface); font-size:10px; color:var(--muted); }
+.health i { width:7px; height:7px; border-radius:50%; background:#5c9a76; box-shadow:0 0 0 3px rgba(92,154,118,.14); }
+.health.is-bad i { background:#b45a4c; box-shadow:0 0 0 3px rgba(180,90,76,.14); }
+.token-wrap { display:flex; align-items:center; gap:6px; padding:4px 4px 4px 10px; border:1px solid var(--line); border-radius:9px; background:var(--surface); }
+.token-wrap span { font-size:9px; color:var(--muted2); }
+.token-wrap input { width:120px; border:0; background:transparent; outline:none; font-size:10px; color:var(--ink); }
+.token-wrap button { border:0; border-radius:6px; background:#eef0e8; padding:5px 8px; font-size:9px; color:#4f5a50; }
+.icon-btn { width:34px; height:34px; display:grid; place-items:center; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:#5d6559; }
+.hero { display:flex; align-items:flex-end; gap:24px; padding:30px 2px 24px; }
+.hero-copy { flex:1; }
+.eyebrow { margin:0 0 7px; font-size:9px; letter-spacing:.18em; color:var(--accent); font-weight:600; }
+.hero h2 { margin:0; font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif; font-size:34px; line-height:1.2; font-weight:600; letter-spacing:-.01em; }
+.hero h2 em { color:var(--accent); font-style:normal; }
+.hero p.desc { max-width:620px; margin:10px 0 0; color:var(--muted); font-size:11.5px; line-height:1.75; }
+.hero-stats { display:flex; gap:12px; }
+.hero-stat { min-width:104px; padding:12px 14px; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
+.hero-stat strong { display:block; font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif; font-size:23px; font-weight:600; }
+.hero-stat small { display:block; margin-top:3px; font-size:8px; color:var(--muted2); letter-spacing:.07em; text-transform:uppercase; }
+.layout { display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:20px; align-items:start; }
+.panel { border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); box-shadow:0 2px 0 rgba(47,58,50,.02); }
+.panel-head { display:flex; align-items:center; gap:12px; padding:17px 20px; border-bottom:1px solid #f0ebe1; }
+.panel-head h3 { margin:0; font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif; font-size:15px; font-weight:600; }
+.panel-head p { margin:2px 0 0; font-size:8.5px; color:var(--muted2); }
+.panel-head .spacer { flex:1; }
+.platform-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:#f0ebe1; border-radius:0 0 var(--radius) var(--radius); overflow:hidden; }
+.platform-card { position:relative; padding:16px 17px 14px; background:var(--surface); }
+.platform-card::before { content:""; position:absolute; left:0; top:0; width:3px; height:100%; background:var(--tone,#ccc); opacity:.75; }
+.platform-top { display:flex; align-items:center; gap:10px; }
+.platform-mark { width:36px; height:36px; border-radius:10px; display:grid; place-items:center; background:var(--soft,#eee); color:var(--tone,#555); font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif; font-size:13px; font-weight:600; }
+.platform-name { font-size:12px; font-weight:600; }
+.platform-sub { margin-top:2px; font-size:8px; color:var(--muted2); }
+.chips { display:flex; flex-wrap:wrap; gap:5px; margin:11px 0 10px; }
+.chip { padding:3px 6px; border-radius:4px; background:#f2eee5; color:#7e8478; font-size:7.5px; }
+.chip.good { background:var(--moss-soft); color:var(--moss); }
+.chip.warn { background:var(--ochre-soft); color:var(--ochre); }
+.chip.bad { background:var(--danger-soft); color:var(--danger); }
+.platform-last { min-height:15px; font-size:8px; color:var(--muted2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.platform-actions { display:flex; gap:7px; margin-top:11px; }
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:5px; height:31px; padding:0 12px; border:1px solid var(--line); border-radius:8px; background:#fffdf8; color:#505b51; font-size:9.5px; }
+.btn:hover { border-color:#d6c9b5; background:#fbf7ee; }
+.btn.primary { border-color:#34443a; background:#34443a; color:#f7f0e0; }
+.btn.primary:hover { background:#2b392f; }
+.btn.danger { border-color:#efd9d3; background:#fdf5f2; color:var(--danger); }
+.btn.small { height:27px; padding:0 9px; font-size:8.5px; }
+.btn.ghost { border-color:transparent; background:transparent; color:var(--muted); }
+.btn:disabled { opacity:.5; cursor:not-allowed; }
+.side { display:grid; gap:16px; }
+.side-card { padding:18px; }
+.side-card h3 { margin:0; font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif; font-size:14px; font-weight:600; }
+.side-card > p { margin:6px 0 0; color:var(--muted); font-size:9px; line-height:1.7; }
+.webhook-box { display:flex; align-items:center; gap:6px; margin-top:11px; padding:8px 9px; border:1px dashed #d7cab5; border-radius:8px; background:#fbf7ee; }
+.webhook-box code { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:9px; color:#5d675c; }
+.steps { counter-reset:step; margin:12px 0 0; padding:0; list-style:none; display:grid; gap:9px; }
+.steps li { counter-increment:step; position:relative; padding-left:25px; color:var(--muted); font-size:9px; line-height:1.65; }
+.steps li::before { content:counter(step,decimal-leading-zero); position:absolute; left:0; top:0; font-size:8px; color:var(--accent); font-weight:600; }
+.steps strong { color:#4a554b; font-weight:600; }
+.notice { margin-top:12px; padding:10px 11px; border-radius:8px; background:var(--accent-soft); color:#8d573c; font-size:8.5px; line-height:1.7; }
+.logs-panel { margin-top:20px; }
+.table-wrap { overflow:auto; }
+table { width:100%; border-collapse:collapse; font-size:9px; }
+th { padding:9px 12px; text-align:left; font-size:7.5px; letter-spacing:.08em; color:var(--muted2); text-transform:uppercase; background:#faf6ee; border-bottom:1px solid #f0ebe1; white-space:nowrap; }
+td { padding:9px 12px; border-bottom:1px solid #f4efe6; color:#596257; vertical-align:top; }
+tr:last-child td { border-bottom:0; }
+.badge { display:inline-block; padding:2px 6px; border-radius:4px; font-size:7.5px; white-space:nowrap; }
+.badge.synced, .badge.verify-ok { background:var(--moss-soft); color:var(--moss); }
+.badge.dry-run, .badge.config { background:var(--ochre-soft); color:var(--ochre); }
+.badge.failed, .badge.verify-failed { background:var(--danger-soft); color:var(--danger); }
+.mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:8px; color:#6d7568; word-break:break-all; }
+.log-error { max-width:260px; color:#9a655b; font-size:8px; line-height:1.5; }
+.empty { padding:36px 20px; text-align:center; color:var(--muted2); font-size:10px; }
+.drawer-layer { position:fixed; inset:0; z-index:50; background:rgba(37,45,39,.42); backdrop-filter:blur(3px); display:none; }
+.drawer-layer.open { display:block; }
+.drawer { position:absolute; right:0; top:0; bottom:0; width:min(560px,94vw); background:var(--surface); box-shadow:-20px 0 60px rgba(37,45,39,.18); display:flex; flex-direction:column; }
+.drawer-head { display:flex; align-items:flex-start; gap:12px; padding:20px 22px 16px; border-bottom:1px solid #f0ebe1; }
+.drawer-head h3 { margin:0; font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif; font-size:18px; }
+.drawer-head p { margin:3px 0 0; font-size:9px; color:var(--muted2); }
+.drawer-head .close { margin-left:auto; }
+.drawer-body { flex:1; overflow:auto; padding:18px 22px; display:grid; gap:14px; }
+.drawer-foot { display:flex; align-items:center; gap:8px; padding:14px 22px; border-top:1px solid #f0ebe1; background:#fdfaf3; }
+.field { display:grid; gap:5px; }
+.field > span { font-size:8.5px; color:#7c8277; letter-spacing:.04em; }
+.field > span em { font-style:normal; color:var(--muted2); font-size:7.5px; }
+.field input, .field textarea, .field select { width:100%; border:1px solid #e4dccd; border-radius:8px; background:#fffefb; padding:8px 10px; font-size:9.5px; color:#3f4a40; outline:none; }
+.field input:focus, .field textarea:focus, .field select:focus { border-color:#c9b99e; box-shadow:0 0 0 3px rgba(185,95,53,.06); }
+.field textarea { resize:vertical; min-height:70px; font-family:ui-monospace,SFMono-Regular,Menlo,"Noto Sans SC",monospace; font-size:8.5px; line-height:1.6; }
+.field textarea.tall { min-height:132px; }
+.field .hint { font-size:7.5px; color:var(--muted2); line-height:1.6; }
+.row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.switch-row { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid #e9e1d3; border-radius:9px; background:#fbf7ee; }
+.switch-row .copy { flex:1; }
+.switch-row strong { display:block; font-size:9.5px; }
+.switch-row small { display:block; margin-top:2px; font-size:7.5px; color:var(--muted2); }
+.switch { position:relative; width:36px; height:20px; flex:none; }
+.switch input { position:absolute; opacity:0; width:0; height:0; }
+.switch i { position:absolute; inset:0; border-radius:999px; background:#d8d1c3; transition:.18s; }
+.switch i::after { content:""; position:absolute; left:3px; top:3px; width:14px; height:14px; border-radius:50%; background:#fffdf8; box-shadow:0 1px 4px rgba(0,0,0,.15); transition:.18s; }
+.switch input:checked + i { background:var(--accent); }
+.switch input:checked + i::after { transform:translateX(16px); }
+.preview { margin:0; padding:10px 12px; border-radius:8px; background:#2f3a32; color:#dce3d8; font-family:ui-monospace,SFMono-Regular,Menlo,"Noto Sans SC",monospace; font-size:8px; line-height:1.6; white-space:pre-wrap; word-break:break-all; max-height:240px; overflow:auto; }
+.pull-map-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.pull-map-grid .field > span { font-size:7.5px; }
+.pull-status { padding:8px 10px; border-radius:8px; background:#f6f2e9; color:#7c8277; font-size:8.5px; }
+.pull-status strong { color:#445046; }
+.curl-import { display:grid; gap:7px; padding:11px 12px; border:1px dashed #d8cbb7; border-radius:10px; background:#fbf7ee; }
+.curl-import textarea { width:100%; min-height:76px; resize:vertical; border:1px solid #e4dccd; border-radius:8px; background:#fffefb; padding:8px 9px; font-family:ui-monospace,SFMono-Regular,Menlo,"Noto Sans SC",monospace; font-size:8px; line-height:1.55; color:#3f4a40; outline:none; }
+.curl-import textarea:focus { border-color:#c9b99e; box-shadow:0 0 0 3px rgba(185,95,53,.06); }
+.curl-actions { display:flex; align-items:center; gap:10px; }
+.curl-actions label { display:flex; align-items:center; gap:5px; font-size:8px; color:#7d8377; cursor:pointer; }
+.curl-actions label input { accent-color:var(--accent); margin:0; }
+.curl-actions .btn { margin-left:auto; }
+.section-label { display:flex; align-items:center; gap:8px; font-size:8px; letter-spacing:.1em; color:var(--muted2); text-transform:uppercase; }
+.section-label::after { content:""; flex:1; height:1px; background:#f0ebe1; }
+
+.cookie-layer { position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center; padding:24px; background:rgba(37,45,39,.46); backdrop-filter:blur(4px); }
+.cookie-layer.open { display:flex; }
+.cookie-modal { width:min(920px,96vw); max-height:90vh; display:flex; flex-direction:column; border-radius:18px; background:var(--surface); box-shadow:0 30px 80px rgba(37,45,39,.24); overflow:hidden; }
+.cookie-head { display:flex; align-items:center; gap:12px; padding:18px 22px; border-bottom:1px solid #f0ebe1; }
+.cookie-head .platform-mark { width:40px; height:40px; font-size:14px; }
+.cookie-head h3 { margin:0; font-size:17px; font-weight:600; }
+.cookie-head p { margin:3px 0 0; font-size:9px; color:var(--muted2); }
+.cookie-head .close { margin-left:auto; }
+.cookie-body { flex:1; overflow:auto; display:grid; grid-template-columns:1.05fr .95fr; gap:0; }
+.cookie-guide { padding:18px 22px; border-right:1px solid #f0ebe1; background:#fdfaf3; }
+.cookie-input { padding:18px 22px; display:flex; flex-direction:column; gap:10px; }
+.guide-url { display:flex; align-items:center; gap:6px; padding:8px 9px; border:1px solid #e6ddce; border-radius:9px; background:#fffefb; }
+.guide-url > span { font-size:7.5px; color:var(--muted2); white-space:nowrap; }
+.guide-url a { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:9px; color:var(--accent); text-decoration:none; }
+.guide-url button { border:0; border-radius:5px; background:#f2ece1; color:#5c655b; font-size:7.5px; padding:4px 6px; }
+.guide-alt { margin-top:6px; font-size:7.5px; color:var(--muted2); }
+.guide-alt a { color:#8a7b66; }
+.guide-steps { margin:14px 0 0; padding:0; list-style:none; counter-reset:gstep; display:grid; gap:9px; }
+.guide-steps li { counter-increment:gstep; position:relative; padding-left:24px; font-size:8.5px; line-height:1.7; color:#667065; }
+.guide-steps li::before { content:counter(gstep,decimal-leading-zero); position:absolute; left:0; top:1px; color:var(--accent); font-size:7.5px; font-weight:600; }
+.guide-cookies { margin-top:14px; }
+.guide-cookies > span { display:block; font-size:7.5px; letter-spacing:.08em; color:var(--muted2); text-transform:uppercase; margin-bottom:6px; }
+.guide-cookies div { display:flex; flex-wrap:wrap; gap:5px; }
+.guide-cookies code { font-family:ui-monospace,SFMono-Regular,Menlo,"Noto Sans SC",monospace; padding:3px 6px; border-radius:4px; background:#f2ede3; color:#6d7468; font-size:7.5px; }
+.guide-note { margin-top:14px; padding:9px 10px; border-radius:8px; background:var(--accent-soft); color:#8d573c; font-size:8px; line-height:1.7; }
+.cookie-status { padding:8px 10px; border-radius:8px; background:#f6f2e9; color:#7c8277; font-size:8.5px; line-height:1.6; }
+.cookie-status strong { color:#445046; }
+.cookie-status.is-ok { background:var(--moss-soft); color:#4d7361; }
+.cookie-input textarea { width:100%; min-height:150px; resize:vertical; border:1px solid #e4dccd; border-radius:9px; background:#fffefb; padding:10px 11px; font-family:ui-monospace,SFMono-Regular,Menlo,"Noto Sans SC",monospace; font-size:8.5px; line-height:1.6; color:#3f4a40; outline:none; }
+.cookie-input textarea:focus { border-color:#c9b99e; box-shadow:0 0 0 3px rgba(185,95,53,.06); }
+.cookie-input textarea.is-masked { -webkit-text-security:disc; }
+.cookie-tools { display:flex; gap:6px; }
+.cookie-tools button { flex:1; height:28px; border:1px solid #e6ddce; border-radius:7px; background:#fffdf8; color:#687066; font-size:8px; }
+.cookie-tools button:hover { border-color:#d3c3aa; }
+.cookie-parsed { min-height:42px; padding:8px 9px; border:1px dashed #e2d8c8; border-radius:8px; background:#fcf9f2; font-size:8px; color:#7e8478; line-height:1.6; }
+.cookie-parsed .ok { color:var(--moss); font-weight:600; }
+.cookie-parsed .warn { color:#a8752f; }
+.cookie-parsed .keys { display:flex; flex-wrap:wrap; gap:4px; margin-top:5px; }
+.cookie-parsed .keys span { padding:2px 5px; border-radius:3px; background:#f0ebe1; color:#71786c; font-size:7px; }
+.cookie-actions { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+.cookie-actions button { height:34px; border-radius:8px; font-size:9px; }
+.cookie-actions .primary { grid-column:1 / -1; border:1px solid #34443a; background:#34443a; color:#f7f0e0; }
+.cookie-actions .primary:hover { background:#2b392f; }
+.cookie-actions .plain { border:1px solid #e6ddce; background:#fffdf8; color:#5f685e; }
+.cookie-actions .plain:hover { border-color:#d3c3aa; }
+.cookie-hint { margin:0; color:var(--muted2); font-size:7.5px; line-height:1.6; }
+@media (max-width:820px) {
+  .cookie-modal { max-height:94vh; }
+  .cookie-body { grid-template-columns:1fr; }
+  .cookie-guide { border-right:0; border-bottom:1px solid #f0ebe1; }
+}
+.toast { position:fixed; right:22px; bottom:22px; z-index:80; display:flex; align-items:center; gap:8px; padding:10px 14px; border-radius:10px; background:#2f3a32; color:#f6efdf; font-size:10px; box-shadow:var(--shadow); opacity:0; transform:translateY(8px); pointer-events:none; transition:.2s; }
+.toast.show { opacity:1; transform:none; }
+.toast.error { background:#7d3f37; }
+@media (max-width:980px) {
+  .page { padding:18px 16px 40px; }
+  .layout { grid-template-columns:1fr; }
+  .hero { flex-direction:column; align-items:flex-start; gap:16px; }
+  .hero h2 { font-size:26px; }
+  .platform-grid { grid-template-columns:1fr; }
+  .topbar { flex-wrap:wrap; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">桥</span>
+      <div><h1>途合桥接器</h1><p>COOKIE WEBHOOK BRIDGE</p></div>
+    </div>
+    <div class="topbar-right">
+      <span class="health" id="health"><i></i><span>连接中…</span></span>
+      <div class="token-wrap"><span>管理令牌</span><input id="adminToken" type="password" placeholder="可选" /><button id="saveToken">保存</button></div>
+      <button class="icon-btn" id="refresh" title="刷新">↻</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">SELF-HOSTED · COOKIE FORWARDING</p>
+      <h2>把途合的同步，<br /><em>真正发到平台。</em></h2>
+      <p class="desc">高德、百度、圆周通过 Webhook 把地点送到这里，桥接器用你自备的 Cookie 和抓包模板发起请求。Cookie 使用 AES-256-GCM 加密落盘，默认预览模式，确认无误后再开启真实请求。</p>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><strong id="statConfigured">0</strong><small>已配置平台</small></div>
+      <div class="hero-stat"><strong id="statLive">0</strong><small>真实模式</small></div>
+      <div class="hero-stat"><strong id="statLogs">0</strong><small>请求日志</small></div>
+    </div>
+  </section>
+
+  <div class="layout">
+    <section class="panel">
+      <div class="panel-head"><div><h3>平台适配</h3><p>每个平台一组 Cookie + 请求模板</p></div><span class="spacer"></span><span class="chip" id="liveAllowed">真实请求：未知</span></div>
+      <div class="platform-grid" id="platformGrid"><div class="empty">正在加载…</div></div>
+    </section>
+
+    <aside class="side">
+      <section class="panel side-card">
+        <h3>接入途合</h3>
+        <p>在途合「平台连接」中把目标平台切换为 Webhook，填入下面的地址与令牌。</p>
+        <div class="webhook-box"><code id="webhookUrl">/webhook</code><button class="btn small" id="copyWebhook">复制</button></div>
+        <ol class="steps">
+          <li><strong>抓一次请求</strong>：在浏览器开发者工具 Network 中完成一次「添加收藏」，复制请求 URL、Request Headers 和 Payload。</li>
+          <li><strong>复制 Cookie</strong>：从请求头或 Application → Cookies 复制完整 Cookie。</li>
+          <li><strong>配置并预览</strong>：先保持预览模式，点「测试」检查渲染结果。</li>
+          <li><strong>小批量试跑</strong>：关闭预览后先在途合同步 1 个地点，确认平台端出现。</li>
+          <li><strong>正式同步</strong>：逐步扩大范围；保持低频，必要时调大请求间隔。</li>
+        </ol>
+        <div class="notice">仅用于你自己的账号。平台接口可能随时变化，自动化操作存在被风控或封号的风险；本项目不会绕过验证码或二次验证。</div>
+      </section>
+      <section class="panel side-card">
+        <h3>安全说明</h3>
+        <p>Cookie 加密存储，接口不会回显明文；日志只保留请求结果，不记录 Cookie。建议只在局域网运行本服务，并设置管理令牌与 Webhook 令牌。</p>
+      </section>
+    </aside>
+  </div>
+
+  <section class="panel logs-panel">
+    <div class="panel-head"><div><h3>请求日志</h3><p>最近 300 条 · 包含预览与真实请求</p></div><span class="spacer"></span><button class="btn small ghost" id="clearLogs">清空</button></div>
+    <div class="table-wrap"><table><thead><tr><th>时间</th><th>平台</th><th>状态</th><th>地点</th><th>HTTP</th><th>耗时</th><th>结果 / 错误</th></tr></thead><tbody id="logBody"><tr><td colspan="7" class="empty">暂无请求</td></tr></tbody></table></div>
+  </section>
+</div>
+
+<div class="drawer-layer" id="drawerLayer">
+  <aside class="drawer" role="dialog" aria-modal="true">
+    <header class="drawer-head">
+      <div><h3 id="drawerTitle">配置平台</h3><p id="drawerSub">Cookie + 请求模板</p></div>
+      <button class="icon-btn close" id="closeDrawer">×</button>
+    </header>
+    <div class="drawer-body">
+      <div class="curl-import">
+        <div class="section-label">从 cURL 快速导入</div>
+        <textarea id="curlText" spellcheck="false" placeholder="在浏览器开发者工具里右键「添加收藏」请求 → Copy → Copy as cURL，粘贴到这里。会自动填 URL / 方法 / Headers / Body / Cookie。"></textarea>
+        <div class="curl-actions">
+          <label><input type="checkbox" id="curlAuto" checked /> 自动替换地点字段</label>
+          <button class="btn small primary" id="importCurl">解析并填充</button>
+        </div>
+      </div>
+      <div class="field">
+        <span>Cookie <em>留空则保留已保存的 Cookie</em></span>
+        <textarea id="fieldCookie" class="tall" placeholder="粘贴完整 Cookie，例如：&#10;sessionid=xxx; token=yyy; ..."></textarea>
+        <span class="hint">支持直接粘贴 `Cookie: ...` 请求头，也会自动清理换行。</span>
+      </div>
+      <div class="section-label">请求模板</div>
+      <div class="field">
+        <span>请求地址</span>
+        <input id="fieldUrl" placeholder="https://example.com/api/favorite/add" />
+      </div>
+      <div class="row2">
+        <div class="field"><span>方法</span><select id="fieldMethod"><option>POST</option><option>PUT</option><option>PATCH</option><option>GET</option><option>DELETE</option></select></div>
+        <div class="field"><span>请求间隔 (ms)</span><input id="fieldInterval" type="number" min="200" max="10000" value="800" /></div>
+      </div>
+      <div class="field">
+        <span>请求头 JSON <em>Cookie 会自动加入，无需填写</em></span>
+        <textarea id="fieldHeaders" placeholder='{"Content-Type":"application/json","Referer":"https://example.com/"}'></textarea>
+      </div>
+      <div class="field">
+        <span>请求体模板 <em>支持 {{place.name}}、{{place.address}}、{{place.location.lng}}、{{place.tagsJson}} 等占位符</em></span>
+        <textarea id="fieldBody" class="tall" placeholder='{"name":"{{place.name}}","address":"{{place.address}}","lng":{{place.location.lng}},"lat":{{place.location.lat}}}'></textarea>
+      </div>
+      <div class="row2">
+        <div class="field"><span>externalId 路径</span><input id="fieldExternalId" placeholder="data.id" /></div>
+        <div class="field"><span>Cookie 验活地址 <em>可选</em></span><input id="fieldVerifyUrl" placeholder="https://example.com/api/me" /></div>
+      </div>
+      <div class="switch-row">
+        <div class="copy"><strong>启用真实请求</strong><small>关闭时为预览模式：只渲染并记录，不发送请求。开启前请先确认模板与 Cookie。</small></div>
+        <label class="switch"><input type="checkbox" id="fieldLive" /><i></i></label>
+      </div>
+      <div class="row2">
+        <button class="btn" id="previewBtn">测试 / 预览</button>
+        <button class="btn danger" id="deleteBtn">删除配置</button>
+      </div>
+      <pre class="preview" id="previewBox" hidden></pre>
+    </div>
+    <footer class="drawer-foot">
+      <span class="hint" style="font-size:8px;color:var(--muted2)">保存后 Cookie 会立即加密写入本地数据文件。</span>
+      <span style="flex:1"></span>
+      <button class="btn" id="cancelDrawer">取消</button>
+      <button class="btn primary" id="savePlatform">保存配置</button>
+    </footer>
+  </aside>
+</div>
+
+<div class="drawer-layer" id="pullLayer">
+  <aside class="drawer" role="dialog" aria-modal="true">
+    <header class="drawer-head">
+      <div><h3 id="pullTitle">拉取收藏</h3><p id="pullSub">读取平台现有收藏并合并到途合</p></div>
+      <button class="icon-btn close" id="closePull">×</button>
+    </header>
+    <div class="drawer-body">
+      <div class="curl-import">
+        <div class="section-label">从 cURL 快速导入拉取请求</div>
+        <textarea id="pullCurlText" spellcheck="false" placeholder="在浏览器里打开平台的收藏夹页面，Network 中找到返回收藏列表的请求，Copy as cURL 后粘贴到这里。"></textarea>
+        <div class="curl-actions">
+          <span class="hint" style="font-size:7.5px">只读取，不写入平台</span>
+          <button class="btn small primary" id="importPullCurl">解析并填充</button>
+        </div>
+      </div>
+      <div class="field">
+        <span>Cookie <em>留空则保留已保存的 Cookie</em></span>
+        <textarea id="pullCookie" placeholder="已保存 Cookie，留空则保持不变；粘贴 cURL 会自动填入"></textarea>
+      </div>
+      <div class="section-label">列表请求</div>
+      <div class="field"><span>拉取地址</span><input id="pullUrl" placeholder="https://www.amap.com/api/favorites/list" /></div>
+      <div class="row2">
+        <div class="field"><span>方法</span><select id="pullMethod"><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option></select></div>
+        <div class="field"><span>坐标系</span><select id="pullCoord"><option>GCJ02</option><option>BD09</option><option>BD09MC</option><option>WGS84</option></select></div>
+      </div>
+      <div class="field"><span>请求头 JSON</span><textarea id="pullHeaders" placeholder='{"Content-Type":"application/json"}'></textarea></div>
+      <div class="field"><span>请求体 <em>可含 {{page}} / {{pageSize}} 占位符</em></span><textarea id="pullBody" placeholder='{"page":{{page}},"size":{{pageSize}}}'></textarea></div>
+      <div class="row2">
+        <div class="field"><span>itemsPath <em>数组所在路径</em></span><input id="pullItemsPath" placeholder="data.list" /></div>
+        <div class="field"><span>分页</span><div class="row2"><input id="pullMaxPages" type="number" min="1" max="20" value="1" title="最多请求页数" /><input id="pullPageSize" type="number" min="1" max="500" value="100" title="每页数量" /></div></div>
+      </div>
+      <div class="section-label">收藏夹模式 <em style="font-weight:400;color:var(--muted2)">适合圆周旅迹等先返回收藏夹列表的平台</em></div>
+      <label class="switch-line" style="display:flex;align-items:center;gap:8px;font-size:9px;color:var(--ink2);margin-bottom:8px">
+        <input type="checkbox" id="pullCollectionEnabled" style="width:auto" />
+        <span>开启：先读取收藏夹列表，再逐个收藏夹拉取地点</span>
+      </label>
+      <div id="pullCollectionFields" hidden>
+        <div class="field"><span>收藏夹详情地址</span><input id="pullDetailUrl" placeholder="https://www.pitravel.cn/api/.../get_collection_detail" /></div>
+        <div class="row2">
+          <div class="field"><span>详情方法</span><select id="pullDetailMethod"><option>POST</option><option>GET</option><option>PUT</option><option>PATCH</option></select></div>
+          <div class="field"><span>最多收藏夹数</span><input id="pullMaxCollections" type="number" min="1" max="100" value="50" /></div>
+        </div>
+        <div class="field"><span>详情请求体 <em>可含 {{collection.id}} / {{page}} / {{pageSize}}</em></span><textarea id="pullDetailBody" placeholder='{"collection_id":"{{collection.id}}","page":{{page}},"page_size":{{pageSize}}}'></textarea></div>
+        <div class="row2">
+          <div class="field"><span>详情 itemsPath</span><input id="pullDetailItemsPath" placeholder="data.collection_detail.items" /></div>
+          <div class="field"><span>详情 totalPath <em>可选</em></span><input id="pullDetailTotalPath" placeholder="data.collection_detail.total" /></div>
+        </div>
+        <div class="row2">
+          <div class="field"><span>收藏夹 ID 字段</span><input id="pullCollectionIdPath" placeholder="collection_id" /></div>
+          <div class="field"><span>收藏夹名称字段</span><input id="pullCollectionNamePath" placeholder="name" /></div>
+        </div>
+      </div>
+      <div class="section-label">字段映射</div>
+      <div class="pull-map-grid">
+        <label class="field"><span>名称</span><input id="pullMapName" value="name" /></label>
+        <label class="field"><span>地址</span><input id="pullMapAddress" value="address" /></label>
+        <label class="field"><span>城市</span><input id="pullMapCity" value="city" /></label>
+        <label class="field"><span>区县</span><input id="pullMapDistrict" value="district" /></label>
+        <label class="field"><span>分类</span><input id="pullMapCategory" value="category" /></label>
+        <label class="field"><span>标签</span><input id="pullMapTags" value="tags" /></label>
+        <label class="field"><span>备注</span><input id="pullMapNote" value="note" /></label>
+        <label class="field"><span>经度</span><input id="pullMapLng" value="lng" /></label>
+        <label class="field"><span>纬度</span><input id="pullMapLat" value="lat" /></label>
+        <label class="field"><span>平台 ID</span><input id="pullMapId" value="id" /></label>
+        <label class="field"><span>行政区码</span><input id="pullMapAdcode" value="adcode" /></label>
+      </div>
+      <div class="row2">
+        <button class="btn" id="pullTestBtn">测试拉取（预览）</button>
+        <button class="btn danger" id="deletePull">删除拉取模板</button>
+      </div>
+      <pre class="preview" id="pullPreview" hidden>这里显示拉取结果预览和原始字段样例。</pre>
+    </div>
+    <footer class="drawer-foot">
+      <span class="hint" style="font-size:8px;color:var(--muted2)">只会读取收藏列表，不会向平台写入任何内容。</span>
+      <span style="flex:1"></span>
+      <button class="btn" id="cancelPull">取消</button>
+      <button class="btn primary" id="savePull">保存拉取模板</button>
+    </footer>
+  </aside>
+</div>
+
+<div class="cookie-layer" id="cookieLayer">
+  <div class="cookie-modal" role="dialog" aria-modal="true">
+    <header class="cookie-head">
+      <span class="platform-mark" id="cookieMark">高</span>
+      <div><h3 id="cookieTitle">Cookie 向导</h3><p id="cookieSub">从浏览器复制登录态</p></div>
+      <button class="icon-btn close" id="closeCookie">×</button>
+    </header>
+    <div class="cookie-body">
+      <section class="cookie-guide">
+        <div class="guide-url">
+          <span>登录网址</span>
+          <a id="cookieUrl" href="#" target="_blank" rel="noreferrer">—</a>
+          <button id="openCookieUrl">打开</button>
+          <button id="copyCookieUrl">复制</button>
+        </div>
+        <div class="guide-alt" id="cookieAlt"></div>
+        <ol class="guide-steps" id="cookieSteps"></ol>
+        <div class="guide-cookies" id="cookieNamesWrap"><span>常见登录 Cookie</span><div id="cookieNames"></div></div>
+        <div class="guide-note" id="cookieNote"></div>
+      </section>
+      <section class="cookie-input">
+        <div class="cookie-status" id="cookieStatus">尚未保存 Cookie</div>
+        <textarea id="cookieText" spellcheck="false" placeholder="把浏览器里的完整 Cookie 粘贴到这里，例如：&#10;BDUSS=xxxx; STOKEN=yyyy; BAIDUID=zzzz"></textarea>
+        <div class="cookie-tools">
+          <button id="pasteCookie">从剪贴板粘贴</button>
+          <button id="parseCookie">解析 Cookie</button>
+          <button id="toggleCookie">显示</button>
+        </div>
+        <div class="cookie-parsed" id="cookieParsed">粘贴后点「解析 Cookie」，会显示键名和登录态检测结果。</div>
+        <div class="cookie-actions">
+          <button class="primary" id="saveCookie">保存 Cookie</button>
+          <button class="plain" id="saveTestCookie">保存并验活</button>
+          <button class="plain" id="goTemplate">配置请求模板</button>
+        </div>
+        <p class="cookie-hint">Cookie 只保存在本机，使用 AES-256-GCM 加密；页面不会再次回显明文。请勿在公共电脑上保存账号 Cookie。</p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const PLATFORM_IDS = ['amap','baidu','yuanzhou'];
+const GUIDES = {
+  amap: {
+    url: 'https://www.amap.com/',
+    urlLabel: '高德地图网页版',
+    steps: [
+      '打开高德网页版，点右上角「登录」，用你的账号完成登录。',
+      '进入「我的 → 收藏」，手动收藏一个地点，确保账号有收藏权限。',
+      '按 F12 打开开发者工具 → Network，筛选 favorite / collect / add。',
+      '点击刚收藏的地点对应请求，在 Request Headers 中复制完整 Cookie。',
+      '粘贴到右侧并保存；建议整段复制，不要只挑单个键。',
+    ],
+    cookies: ['_AMap_*', 'AMap_*', 'csrf', 'cna', '_umdata'],
+    loginKeys: ['_amap_', 'amap_', 'csrf', 'cna', '_umdata'],
+    placeholder: '_AMap_token=...; cna=...; csrf=...; _umdata=...',
+    note: '高德登录态 Cookie 名称会随版本变化，常见以 _AMap_ / AMap_ 开头；整段复制最稳妥。',
+  },
+  baidu: {
+    url: 'https://map.baidu.com/',
+    urlLabel: '百度地图网页版',
+    steps: [
+      '打开百度地图网页版，登录百度账号。',
+      '进入「我的 → 收藏」，手动收藏一个地点。',
+      '按 F12 → Network，筛选 fav / collect / add / favorite。',
+      '找到收藏请求，复制 Request Headers 里的完整 Cookie。',
+      '粘贴到右侧保存；百度最关键的是 BDUSS、BDUSS_BFESS、STOKEN。',
+    ],
+    cookies: ['BDUSS', 'BDUSS_BFESS', 'STOKEN', 'BAIDUID', 'BAIDUID_BFESS'],
+    loginKeys: ['bduss', 'stoken', 'baiduid'],
+    placeholder: 'BDUSS=...; BDUSS_BFESS=...; STOKEN=...; BAIDUID=...',
+    note: '百度登录态主要看 BDUSS 与 STOKEN；缺少其中一个通常会直接返回 401 或登录页。',
+  },
+  yuanzhou: {
+    url: 'https://www.pitravel.cn/plan?lang=cn',
+    urlLabel: '圆周旅迹网页版（Pi Travel）',
+    steps: [
+      '打开圆周旅迹网页版，点右上角头像，用微信扫码或手机号登录。',
+      '进入「我的 / 收藏 / 收藏夹」，确认网页版是否显示你的收藏地点。',
+      '新建或打开一个收藏夹，手动添加一个地点。',
+      '按 F12 → Network，筛选 collection / poi / event。',
+      '找到添加地点或收藏的请求，复制完整 Cookie（以及必要的请求头）。',
+    ],
+    cookies: ['登录态 Cookie（微信/手机号登录后生成）', 'pitravel*'],
+    loginKeys: ['pitravel', 'session', 'token', 'uid'],
+    placeholder: '微信 / 手机号登录后，从 Network 复制完整 Cookie',
+    note: '圆周旅迹有网页版 pitravel.cn，支持微信/手机号登录和收藏夹；但不同账号的网页功能可能不同。若网页没有「收藏夹/添加地点」入口，请改用 App 导出 JSON/CSV。',
+  },
+};
+const state = { data: null, editing: null, cookieEditing: null, cookieMasked: true, pullEditing: null };
+const $ = (id) => document.getElementById(id);
+const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+
+function getToken() { return localStorage.getItem('bridge-admin-token') || ''; }
+function setToken(value) { localStorage.setItem('bridge-admin-token', value); }
+$('adminToken').value = getToken();
+$('saveToken').onclick = () => { setToken($('adminToken').value.trim()); toast('管理令牌已保存'); load(); };
+
+async function api(path, options = {}) {
+  const headers = { ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...(options.headers || {}) };
+  const token = getToken();
+  if (token) headers['x-bridge-token'] = token;
+  const response = await fetch(path, { ...options, headers });
+  const type = response.headers.get('content-type') || '';
+  const payload = type.includes('application/json') ? await response.json() : null;
+  if (!response.ok) {
+    if (response.status === 401) toast('管理令牌无效，请在右上角填写', true);
+    throw new Error(payload?.error || `请求失败（${response.status}）`);
+  }
+  return payload;
+}
+
+let toastTimer = null;
+function toast(message, isError = false) {
+  const el = $('toast');
+  el.textContent = message;
+  el.className = `toast show${isError ? ' error' : ''}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = 'toast'; }, 2800);
+}
+
+function platformById(id) { return state.data?.platforms.find((item) => item.id === id); }
+
+function render() {
+  const platforms = state.data?.platforms || [];
+  const logs = state.data?.logs || [];
+  const settings = state.data?.settings || {};
+  $('statConfigured').textContent = platforms.filter((item) => item.configured).length;
+  $('statLive').textContent = platforms.filter((item) => item.configured && item.config && !item.config.dryRun).length;
+  $('statLogs').textContent = logs.length;
+  $('liveAllowed').textContent = settings.allowLive ? '真实请求：允许' : '真实请求：已禁用';
+  $('liveAllowed').className = `chip ${settings.allowLive ? 'good' : 'bad'}`;
+  $('webhookUrl').textContent = `${location.origin}/webhook`;
+
+  $('platformGrid').innerHTML = platforms.map((item) => {
+    const dry = item.config ? item.config.dryRun : true;
+    const last = item.lastLog;
+    const lastText = last ? `${last.placeName || ''} · ${last.status} · ${new Date(last.at).toLocaleTimeString('zh-CN', { hour12: false })}` : '还没有请求记录';
+    return `<article class="platform-card" style="--tone:${item.color};--soft:${item.color}18">
+      <div class="platform-top">
+        <span class="platform-mark">${esc(item.short.slice(0,1))}</span>
+        <div><div class="platform-name">${esc(item.name)}</div><div class="platform-sub">${esc(item.id)} · Cookie 转发</div></div>
+      </div>
+      <div class="chips">
+        <span class="chip ${item.configured ? 'good' : 'bad'}">${item.configured ? `Cookie 已配置${item.cookieMeta?.count ? ` · ${item.cookieMeta.count} 键` : ''}` : '未配置 Cookie'}</span>
+        <span class="chip ${item.pullReady ? 'good' : 'bad'}">${item.pullReady ? '拉取已配置' : '未配置拉取'}</span>
+        <span class="chip ${item.hasTemplate ? 'good' : 'bad'}">${item.hasTemplate ? '写入已配置' : '未配置写入'}</span>
+        <span class="chip ${dry ? 'warn' : 'good'}">${dry ? '预览模式' : '真实请求'}</span>
+      </div>
+      <div class="platform-last" title="${esc(lastText)}">${esc(lastText)}</div>
+      <div class="platform-actions">
+        <button class="btn small" data-cookie="${item.id}">Cookie 向导</button>
+        <button class="btn small primary" data-pull="${item.id}">拉取</button>
+        <button class="btn small" data-config="${item.id}">写入</button>
+      </div>
+    </article>`;
+  }).join('') || '<div class="empty">没有平台</div>';
+
+  document.querySelectorAll('[data-cookie]').forEach((btn) => { btn.onclick = () => openCookieGuide(btn.dataset.cookie); });
+  document.querySelectorAll('[data-pull]').forEach((btn) => { btn.onclick = () => openPullDrawer(btn.dataset.pull); });
+  document.querySelectorAll('[data-config]').forEach((btn) => { btn.onclick = () => openDrawer(btn.dataset.config); });
+
+  const rows = logs.map((log) => `<tr>
+    <td class="mono">${new Date(log.at).toLocaleString('zh-CN', { hour12: false })}</td>
+    <td>${esc(platformById(log.platform)?.short || log.platform)}</td>
+    <td><span class="badge ${esc(log.status)}">${esc(log.status)}</span></td>
+    <td>${esc(log.placeName || '—')}</td>
+    <td class="mono">${log.httpStatus || '—'}</td>
+    <td class="mono">${log.durationMs != null ? `${log.durationMs}ms` : '—'}</td>
+    <td><div class="log-error">${esc(log.error || log.response || (log.dryRun ? '预览：请求未发送' : '—'))}</div></td>
+  </tr>`).join('');
+  $('logBody').innerHTML = rows || '<tr><td colspan="7" class="empty">暂无请求</td></tr>';
+}
+
+async function load() {
+  try {
+    const health = await fetch('/health').then((response) => response.json());
+    if (health.adminTokenRequired && !getToken()) {
+      $('health').className = 'health';
+      $('health').innerHTML = '<i></i><span>等待管理令牌</span>';
+      $('platformGrid').innerHTML = '<div class="empty">请先在右上角填写管理令牌，再加载平台配置</div>';
+      return;
+    }
+    const payload = await api('/api/status');
+    state.data = payload.data;
+    $('health').className = 'health';
+    $('health').innerHTML = '<i></i><span>运行中</span>';
+    render();
+  } catch (error) {
+    $('health').className = 'health is-bad';
+    $('health').innerHTML = '<i></i><span>连接失败</span>';
+    toast(error.message, true);
+  }
+}
+
+function parseCookieText(text) {
+  let raw = String(text || '').trim();
+  if (!raw) return [];
+  if (raw.startsWith('{') || raw.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((item) => item && typeof item === 'object' && item.name).map((item) => [String(item.name).trim(), String(item.value ?? '').trim()]).filter(([name]) => name);
+      }
+      if (parsed && typeof parsed === 'object') {
+        return Object.entries(parsed).map(([name, value]) => [String(name).trim(), String(value ?? '').trim()]).filter(([name]) => name);
+      }
+    } catch { /* raw text */ }
+  }
+  const match = raw.match(/(?:^|\n)\s*cookie\s*:\s*([^\n]+)/i);
+  if (match) raw = match[1];
+  if (raw.includes('\n')) {
+    raw = raw.split('\n').map((line) => {
+      const m = line.match(/^\s*cookie\s*:\s*(.+)$/i);
+      return m ? m[1] : line.trim();
+    }).filter(Boolean).join('; ');
+  }
+  const pairs = [];
+  const seen = new Map();
+  for (const part of raw.split(';')) {
+    const trimmed = part.trim();
+    const index = trimmed.indexOf('=');
+    if (index <= 0) continue;
+    const name = trimmed.slice(0, index).trim();
+    const value = trimmed.slice(index + 1).trim();
+    if (!seen.has(name)) pairs.push([name, value]);
+    seen.set(name, value);
+  }
+  return pairs;
+}
+
+function detectedLoginKeys(pairs, guide) {
+  const keys = guide?.loginKeys || [];
+  return pairs.map(([name]) => name).filter((name) => keys.some((key) => name.toLowerCase().includes(key)));
+}
+
+function updateCookieStatus(platform) {
+  const meta = platform?.cookieMeta;
+  const status = $('cookieStatus');
+  if (meta?.count) {
+    status.className = 'cookie-status is-ok';
+    status.innerHTML = `已保存 <strong>${meta.count}</strong> 个 Cookie 键 · ${platform.cookieUpdatedAt ? new Date(platform.cookieUpdatedAt).toLocaleString('zh-CN', { hour12: false }) : ''}<br><span style="font-size:7.5px;opacity:.8">${esc((meta.names || []).slice(0, 10).join(', '))}${meta.names?.length > 10 ? ' …' : ''}</span>`;
+  } else {
+    status.className = 'cookie-status';
+    status.textContent = '尚未保存 Cookie';
+  }
+}
+
+function openCookieGuide(id) {
+  const platform = platformById(id);
+  const guide = GUIDES[id];
+  if (!platform || !guide) return;
+  state.cookieEditing = id;
+  state.cookieMasked = true;
+  $('cookieTitle').textContent = `${platform.name} · Cookie 向导`;
+  $('cookieSub').textContent = `${platform.id} · 从浏览器复制登录态`;
+  $('cookieMark').textContent = platform.short.slice(0, 1);
+  $('cookieMark').style.setProperty('--tone', platform.color);
+  $('cookieMark').style.setProperty('--soft', `${platform.color}18`);
+  $('cookieUrl').textContent = guide.url || guide.urlLabel || '无官方网页版';
+  $('cookieUrl').href = guide.url || '#';
+  $('openCookieUrl').disabled = !guide.url;
+  $('copyCookieUrl').disabled = !guide.url;
+  const alt = $('cookieAlt');
+  if (guide.altUrl) {
+    alt.innerHTML = `备用入口：<a href="${esc(guide.altUrl)}" target="_blank" rel="noreferrer">${esc(guide.altLabel || guide.altUrl)}</a>`;
+  } else alt.innerHTML = '';
+  $('cookieSteps').innerHTML = guide.steps.map((step) => `<li>${esc(step)}</li>`).join('');
+  const namesWrap = $('cookieNamesWrap');
+  if (guide.cookies.length) {
+    namesWrap.hidden = false;
+    $('cookieNames').innerHTML = guide.cookies.map((name) => `<code>${esc(name)}</code>`).join('');
+  } else namesWrap.hidden = true;
+  $('cookieNote').textContent = guide.note || '';
+  $('cookieText').value = '';
+  $('cookieText').placeholder = guide.placeholder || '粘贴完整 Cookie，例如：name=value; name2=value2';
+  $('cookieText').classList.add('is-masked');
+  $('toggleCookie').textContent = '显示';
+  $('cookieParsed').innerHTML = guide.unavailable ? '<span class="warn">该平台没有官方网页版收藏入口，无法使用 Cookie 桥接。</span>' : '粘贴后点「解析 Cookie」，会显示键名和登录态检测结果。';
+  $('saveCookie').disabled = Boolean(guide.unavailable);
+  $('saveTestCookie').disabled = Boolean(guide.unavailable);
+  $('pasteCookie').disabled = Boolean(guide.unavailable);
+  updateCookieStatus(platform);
+  $('cookieLayer').classList.add('open');
+}
+
+function closeCookieGuide() { $('cookieLayer').classList.remove('open'); state.cookieEditing = null; }
+
+function renderParsedCookie() {
+  const id = state.cookieEditing;
+  const guide = GUIDES[id];
+  const pairs = parseCookieText($('cookieText').value);
+  const box = $('cookieParsed');
+  if (!pairs.length) {
+    box.innerHTML = '<span class="warn">没有解析到 name=value 形式的 Cookie，请检查粘贴内容。</span>';
+    return [];
+  }
+  const detected = detectedLoginKeys(pairs, guide);
+  const detectedText = detected.length ? `<span class="ok">检测到登录态键：${detected.slice(0, 6).map(esc).join('、')}</span>` : '<span class="warn">未识别到该平台常见登录键，仍可保存，但请确认已登录。</span>';
+  box.innerHTML = `<span class="ok">解析到 ${pairs.length} 个 Cookie 键</span> · ${detectedText}<div class="keys">${pairs.slice(0, 16).map(([name]) => `<span>${esc(name)}</span>`).join('')}${pairs.length > 16 ? `<span>+${pairs.length - 16}</span>` : ''}</div>`;
+  return pairs;
+}
+
+async function saveCookie(withTest = false) {
+  const id = state.cookieEditing;
+  if (!id) return;
+  const pairs = parseCookieText($('cookieText').value);
+  if (!pairs.length) { toast('请先粘贴并解析有效 Cookie', true); return; }
+  const cookie = pairs.map(([name, value]) => `${name}=${value}`).join('; ');
+  const button = withTest ? $('saveTestCookie') : $('saveCookie');
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = '保存中…';
+  try {
+    await api(`/api/platforms/${id}`, { method: 'PUT', body: JSON.stringify({ cookie }) });
+    toast(`已保存 ${pairs.length} 个 Cookie 键`);
+    await load();
+    $('cookieText').value = '';
+    $('cookieParsed').innerHTML = `<span class="ok">Cookie 已加密保存</span> · ${pairs.length} 个键`;
+    updateCookieStatus(platformById(id));
+    if (withTest) {
+      const platform = platformById(id);
+      if (!platform?.config?.verifyUrl) {
+        toast('已保存；尚未配置验活地址，先配置请求模板后再验活', true);
+      } else {
+        const payload = await api(`/api/platforms/${id}/test`, { method: 'POST', body: '{}' });
+        const data = payload.data;
+        $('cookieParsed').innerHTML = `<span class="ok">验活完成</span> · HTTP ${data.httpStatus}<br><span style="font-size:7.5px;opacity:.8">${esc(data.snippet || '')}</span>`;
+        toast(data.httpStatus >= 200 && data.httpStatus < 400 ? 'Cookie 验活成功' : 'Cookie 可能已失效', !(data.httpStatus >= 200 && data.httpStatus < 400));
+      }
+    }
+    load();
+  } catch (error) {
+    toast(error.message, true);
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
+function splitCurl(raw) {
+  const text = String(raw || '').replace(/\\\r?\n/g, ' ');
+  const tokens = [];
+  let current = '';
+  let quote = null;
+  let escaped = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    if (escaped) { current += char; escaped = false; continue; }
+    if (char === '\\' && quote !== "'") { escaped = true; continue; }
+    if (quote) { if (char === quote) quote = null; else current += char; continue; }
+    if ((char === "'" || char === '"')) { quote = char; continue; }
+    if (char === '$' && (text[index + 1] === "'" || text[index + 1] === '"')) continue;
+    if (/\s/.test(char)) { if (current) { tokens.push(current); current = ''; } continue; }
+    current += char;
+  }
+  if (current) tokens.push(current);
+  return tokens;
+}
+
+function mapPlaceholder(key) {
+  const name = String(key || '').toLowerCase();
+  if (['name', 'title', 'poiname', 'place_name', 'placename', 'shortname'].includes(name)) return '{{place.name}}';
+  if (['address', 'addr', 'addressname', 'address_name'].includes(name)) return '{{place.address}}';
+  if (['city', 'cityname', 'city_name'].includes(name)) return '{{place.city}}';
+  if (['district', 'county', 'districtname', 'district_name'].includes(name)) return '{{place.district}}';
+  if (['category', 'type', 'typename'].includes(name)) return '{{place.category}}';
+  if (['note', 'remark', 'comment', 'memo', 'description', 'desc'].includes(name)) return '{{place.note}}';
+  if (['rating', 'score'].includes(name)) return '{{place.rating}}';
+  if (name === 'tags') return { raw: '{{place.tagsJson}}' };
+  if (['lng', 'lon', 'longitude'].includes(name)) return { raw: '{{place.location.lng}}' };
+  if (['lat', 'latitude'].includes(name)) return { raw: '{{place.location.lat}}' };
+  return null;
+}
+
+function templateFromJSON(value, key = '') {
+  const mapped = mapPlaceholder(key);
+  if (mapped) return mapped.raw ? `@@RAW@@${mapped.raw}` : mapped;
+  if (Array.isArray(value)) return value.map((item) => templateFromJSON(item, key));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([childKey, childValue]) => [childKey, templateFromJSON(childValue, childKey)]));
+  }
+  return value;
+}
+
+function jsonTemplate(body) {
+  const parsed = JSON.parse(body);
+  const templated = JSON.stringify(templateFromJSON(parsed), null, 2);
+  return templated.replace(/"@@RAW@@(\{\{[^}]+\}\})"/g, '$1');
+}
+
+function formTemplate(body) {
+  const params = new URLSearchParams(body);
+  const pairs = [];
+  for (const [key, value] of params.entries()) {
+    const mapped = mapPlaceholder(key);
+    if (mapped) pairs.push([key, mapped.raw ? mapped.raw : mapped]);
+    else pairs.push([key, value]);
+  }
+  return pairs.map(([key, value]) => `${key}=${value}`).join('&');
+}
+
+function parseCurlCommand(raw) {
+  const tokens = splitCurl(raw);
+  if (!tokens.length) throw new Error('没有识别到 cURL 内容');
+  let url = '';
+  let method = '';
+  let cookie = '';
+  let data = '';
+  const headers = {};
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    const next = tokens[index + 1];
+    if (/^https?:\/\//i.test(token)) { url = token; continue; }
+    if (token === '--url' && next) { url = next; index += 1; continue; }
+    if ((token === '-X' || token === '--request') && next) { method = next.toUpperCase(); index += 1; continue; }
+    if ((token === '-H' || token === '--header') && next) {
+      const split = next.indexOf(':');
+      if (split > 0) {
+        const name = next.slice(0, split).trim();
+        const value = next.slice(split + 1).trim();
+        if (name.toLowerCase() === 'cookie') cookie = value;
+        else if (!['host', 'content-length'].includes(name.toLowerCase())) headers[name] = value;
+      }
+      index += 1;
+      continue;
+    }
+    if ((token === '-b' || token === '--cookie') && next) { cookie = next; index += 1; continue; }
+    if (token === '-A' && next) { headers['User-Agent'] = next; index += 1; continue; }
+    if (['--data', '--data-raw', '--data-binary', '--data-urlencode', '-d'].includes(token) && next) {
+      data = data ? `${data}&${next}` : next;
+      index += 1;
+      continue;
+    }
+  }
+  if (!url) throw new Error('cURL 里没有找到请求 URL');
+  const contentType = Object.entries(headers).find(([name]) => name.toLowerCase() === 'content-type')?.[1] || '';
+  const looksJSON = data.trim().startsWith('{') || data.trim().startsWith('[');
+  const looksForm = /x-www-form-urlencoded/i.test(contentType) || (!looksJSON && data.includes('=') && data.includes('&'));
+  if (data && !contentType) headers['Content-Type'] = looksJSON ? 'application/json' : looksForm ? 'application/x-www-form-urlencoded' : 'text/plain';
+  return { url, method: method || (data ? 'POST' : 'GET'), headers, cookie, data, looksJSON, looksForm };
+}
+
+function importCurl() {
+  try {
+    const parsed = parseCurlCommand($('curlText').value);
+    let body = parsed.data;
+    const auto = $('curlAuto').checked;
+    if (auto && body) {
+      try {
+        if (parsed.looksJSON) body = jsonTemplate(body);
+        else if (parsed.looksForm) body = formTemplate(body);
+      } catch { /* keep original body */ }
+    }
+    $('fieldUrl').value = parsed.url;
+    $('fieldMethod').value = parsed.method;
+    $('fieldHeaders').value = JSON.stringify(parsed.headers, null, 2);
+    $('fieldBody').value = body;
+    if (parsed.cookie) $('fieldCookie').value = parsed.cookie;
+    $('fieldLive').checked = false;
+    $('previewBox').hidden = true;
+    toast(`cURL 已填充：${parsed.method} · ${parsed.cookie ? '含 Cookie' : '无 Cookie'}${auto && body ? ' · 已替换地点字段' : ''}`);
+  } catch (error) {
+    toast(error.message, true);
+  }
+}
+
+function openPullDrawer(id) {
+  const platform = platformById(id);
+  if (!platform) return;
+  state.pullEditing = id;
+  const config = platform.pull || {};
+  const map = config.fieldMap || {};
+  $('pullTitle').textContent = `${platform.name} · 拉取收藏`;
+  $('pullSub').textContent = `${platform.id} · 读取现有收藏并合并到途合`;
+  $('pullCurlText').value = '';
+  $('pullCookie').value = '';
+  $('pullCookie').placeholder = platform.configured ? '已保存 Cookie，留空则保持不变；粘贴 cURL 会自动填入' : '粘贴完整 Cookie';
+  $('pullUrl').value = config.url || '';
+  $('pullMethod').value = config.method || 'GET';
+  $('pullCoord').value = config.coordSystem || platform.coord || 'WGS84';
+  $('pullHeaders').value = JSON.stringify(config.headers || { 'Content-Type': 'application/json' }, null, 2);
+  $('pullBody').value = config.body || '';
+  $('pullItemsPath').value = config.itemsPath || 'items';
+  $('pullMaxPages').value = config.maxPages || 1;
+  $('pullPageSize').value = config.pageSize || 100;
+  const collection = config.collection || null;
+  $('pullCollectionEnabled').checked = Boolean(collection);
+  $('pullCollectionFields').hidden = !collection;
+  $('pullDetailUrl').value = collection?.detailUrl || '';
+  $('pullDetailMethod').value = collection?.detailMethod || 'POST';
+  $('pullMaxCollections').value = collection?.maxCollections || 50;
+  $('pullDetailBody').value = collection?.detailBody || '';
+  $('pullDetailItemsPath').value = collection?.itemsPath || 'items';
+  $('pullDetailTotalPath').value = collection?.totalPath || '';
+  $('pullCollectionIdPath').value = collection?.idPath || 'collection_id';
+  $('pullCollectionNamePath').value = collection?.namePath || 'name';
+  const defaults = { name: 'name', address: 'address', city: 'city', district: 'district', category: 'category', tags: 'tags', note: 'note', lng: 'lng', lat: 'lat', id: 'id', adcode: 'adcode' };
+  for (const [key, fallback] of Object.entries(defaults)) {
+    const input = $('pullMap' + key.charAt(0).toUpperCase() + key.slice(1));
+    if (input) input.value = map[key] || fallback;
+  }
+  $('pullPreview').hidden = true;
+  $('pullPreview').textContent = '这里显示拉取结果预览和原始字段样例。';
+  $('pullLayer').classList.add('open');
+}
+
+function closePullDrawer() { $('pullLayer').classList.remove('open'); state.pullEditing = null; }
+
+function readPullForm() {
+  let headers = {};
+  try { headers = JSON.parse($('pullHeaders').value || '{}'); } catch { throw new Error('请求头不是合法 JSON'); }
+  return {
+    url: $('pullUrl').value.trim(),
+    method: $('pullMethod').value,
+    coordSystem: $('pullCoord').value,
+    headers,
+    body: $('pullBody').value,
+    itemsPath: $('pullItemsPath').value.trim() || 'items',
+    maxPages: Number($('pullMaxPages').value) || 1,
+    pageSize: Number($('pullPageSize').value) || 100,
+    collection: $('pullCollectionEnabled').checked ? {
+      detailUrl: $('pullDetailUrl').value.trim(),
+      detailMethod: $('pullDetailMethod').value,
+      detailBody: $('pullDetailBody').value,
+      itemsPath: $('pullDetailItemsPath').value.trim() || 'items',
+      totalPath: $('pullDetailTotalPath').value.trim(),
+      idPath: $('pullCollectionIdPath').value.trim() || 'collection_id',
+      namePath: $('pullCollectionNamePath').value.trim() || 'name',
+      maxCollections: Number($('pullMaxCollections').value) || 50,
+    } : null,
+    fieldMap: {
+      name: $('pullMapName').value.trim() || 'name',
+      address: $('pullMapAddress').value.trim() || 'address',
+      city: $('pullMapCity').value.trim() || 'city',
+      district: $('pullMapDistrict').value.trim() || 'district',
+      category: $('pullMapCategory').value.trim() || 'category',
+      tags: $('pullMapTags').value.trim() || 'tags',
+      note: $('pullMapNote').value.trim() || 'note',
+      lng: $('pullMapLng').value.trim() || 'lng',
+      lat: $('pullMapLat').value.trim() || 'lat',
+      id: $('pullMapId').value.trim() || 'id',
+      adcode: $('pullMapAdcode').value.trim() || 'adcode',
+    },
+  };
+}
+
+function importPullCurl() {
+  try {
+    const parsed = parseCurlCommand($('pullCurlText').value);
+    $('pullUrl').value = parsed.url;
+    $('pullMethod').value = parsed.method;
+    $('pullHeaders').value = JSON.stringify(parsed.headers, null, 2);
+    $('pullBody').value = parsed.data;
+    if (parsed.cookie) $('pullCookie').value = parsed.cookie;
+    toast(`拉取请求已填充：${parsed.method} · ${parsed.cookie ? '含 Cookie' : '无 Cookie'}`);
+  } catch (error) { toast(error.message, true); }
+}
+
+async function savePull() {
+  if (!state.pullEditing) return;
+  try {
+    const config = readPullForm();
+    if (!config.url) throw new Error('请填写拉取地址');
+    const cookie = $('pullCookie').value.trim();
+    await api(`/api/platforms/${state.pullEditing}/pull`, { method: 'PUT', body: JSON.stringify({ config, ...(cookie ? { cookie } : {}) }) });
+    toast('拉取模板已保存');
+    closePullDrawer();
+    load();
+  } catch (error) { toast(error.message, true); }
+}
+
+async function testPull() {
+  if (!state.pullEditing) return;
+  try {
+    const config = readPullForm();
+    if (!config.url) throw new Error('请填写拉取地址');
+    const cookie = $('pullCookie').value.trim();
+    await api(`/api/platforms/${state.pullEditing}/pull`, { method: 'PUT', body: JSON.stringify({ config, ...(cookie ? { cookie } : {}) }) });
+    const payload = await api(`/api/platforms/${state.pullEditing}/pull/test`, { method: 'POST', body: '{}' });
+    const data = payload.data;
+    $('pullPreview').hidden = false;
+    $('pullPreview').textContent = JSON.stringify({ total: data.total, items: data.items, rawSample: data.rawSample }, null, 2);
+    toast(`拉取成功：识别到 ${data.total} 个地点`);
+    load();
+  } catch (error) { toast(error.message, true); }
+}
+
+async function deletePull() {
+  if (!state.pullEditing) return;
+  if (!confirm('确定删除该平台的拉取模板吗？Cookie 会保留。')) return;
+  try {
+    await api(`/api/platforms/${state.pullEditing}/pull`, { method: 'DELETE' });
+    toast('拉取模板已删除');
+    closePullDrawer();
+    load();
+  } catch (error) { toast(error.message, true); }
+}
+
+function openDrawer(id) {
+  const platform = platformById(id);
+  if (!platform) return;
+  state.editing = id;
+  $('drawerTitle').textContent = `配置${platform.name}`;
+  $('drawerSub').textContent = `${platform.id} · ${platform.configured ? 'Cookie 已配置（留空不修改）' : '尚未配置 Cookie'}`;
+  $('curlText').value = '';
+  $('fieldCookie').value = '';
+  $('fieldCookie').placeholder = platform.configured ? '已保存 Cookie，留空则保持不变' : '粘贴完整 Cookie，例如：\nname=value; name2=value2';
+  const config = platform.config || {};
+  $('fieldUrl').value = config.url || '';
+  $('fieldMethod').value = config.method || 'POST';
+  $('fieldInterval').value = config.minIntervalMs || 800;
+  $('fieldHeaders').value = JSON.stringify(config.headers || { 'Content-Type': 'application/json' }, null, 2);
+  $('fieldBody').value = config.body || '';
+  $('fieldExternalId').value = config.externalIdPath || 'data.id';
+  $('fieldVerifyUrl').value = config.verifyUrl || '';
+  $('fieldLive').checked = config.dryRun === false;
+  $('previewBox').hidden = true;
+  $('previewBox').textContent = '';
+  $('drawerLayer').classList.add('open');
+}
+
+function closeDrawer() { $('drawerLayer').classList.remove('open'); state.editing = null; }
+
+function readForm() {
+  let headers = {};
+  try { headers = JSON.parse($('fieldHeaders').value || '{}'); } catch { throw new Error('请求头不是合法 JSON'); }
+  return {
+    url: $('fieldUrl').value.trim(),
+    method: $('fieldMethod').value,
+    headers,
+    body: $('fieldBody').value,
+    externalIdPath: $('fieldExternalId').value.trim() || 'data.id',
+    verifyUrl: $('fieldVerifyUrl').value.trim(),
+    dryRun: !$('fieldLive').checked,
+    minIntervalMs: Number($('fieldInterval').value) || 800,
+  };
+}
+
+async function savePlatform() {
+  if (!state.editing) return;
+  try {
+    const config = readForm();
+    if (!config.url) throw new Error('请填写请求地址');
+    const cookie = $('fieldCookie').value.trim();
+    await api(`/api/platforms/${state.editing}`, { method: 'PUT', body: JSON.stringify({ config, ...(cookie ? { cookie } : {}) }) });
+    toast('配置已保存');
+    closeDrawer();
+    load();
+  } catch (error) { toast(error.message, true); }
+}
+
+async function testPlatform(id) {
+  try {
+    const payload = await api(`/api/platforms/${id}/test`, { method: 'POST', body: '{}' });
+    const data = payload.data;
+    if (data.mode === 'verify') {
+      toast(`Cookie 验活：HTTP ${data.httpStatus}`);
+      await load();
+      return;
+    }
+    openDrawer(id);
+    $('previewBox').hidden = false;
+    $('previewBox').textContent = JSON.stringify(data.preview, null, 2);
+    toast('模板渲染成功，预览如下');
+  } catch (error) { toast(error.message, true); }
+}
+
+$('closeDrawer').onclick = closeDrawer;
+$('cancelDrawer').onclick = closeDrawer;
+$('drawerLayer').onclick = (event) => { if (event.target === $('drawerLayer')) closeDrawer(); };
+$('closePull').onclick = closePullDrawer;
+$('cancelPull').onclick = closePullDrawer;
+$('pullLayer').onclick = (event) => { if (event.target === $('pullLayer')) closePullDrawer(); };
+$('savePull').onclick = savePull;
+$('pullTestBtn').onclick = testPull;
+$('deletePull').onclick = deletePull;
+$('importPullCurl').onclick = importPullCurl;
+$('pullCollectionEnabled').onchange = () => { $('pullCollectionFields').hidden = !$('pullCollectionEnabled').checked; };
+$('importCurl').onclick = importCurl;
+$('savePlatform').onclick = savePlatform;
+$('previewBtn').onclick = async () => {
+  if (!state.editing) return;
+  if (!platformById(state.editing)?.configured && !$('fieldCookie').value.trim()) { toast('请先保存 Cookie', true); return; }
+  try {
+    if ($('fieldUrl').value.trim()) {
+      await api(`/api/platforms/${state.editing}`, { method: 'PUT', body: JSON.stringify({ config: readForm(), ...($('fieldCookie').value.trim() ? { cookie: $('fieldCookie').value.trim() } : {}) }) });
+    }
+    const payload = await api(`/api/platforms/${state.editing}/test`, { method: 'POST', body: '{}' });
+    const data = payload.data;
+    $('previewBox').hidden = false;
+    $('previewBox').textContent = data.mode === 'verify' ? JSON.stringify(data, null, 2) : JSON.stringify(data.preview, null, 2);
+    toast(data.mode === 'verify' ? `Cookie 验活：HTTP ${data.httpStatus}` : '模板渲染成功');
+    load();
+  } catch (error) { toast(error.message, true); }
+};
+$('deleteBtn').onclick = async () => {
+  if (!state.editing) return;
+  if (!confirm('确定删除该平台的 Cookie 和请求模板吗？')) return;
+  try {
+    await api(`/api/platforms/${state.editing}`, { method: 'DELETE' });
+    toast('配置已删除');
+    closeDrawer();
+    load();
+  } catch (error) { toast(error.message, true); }
+};
+$('refresh').onclick = () => { load(); toast('已刷新'); };
+$('copyWebhook').onclick = async () => {
+  const url = `${location.origin}/webhook`;
+  try { await navigator.clipboard.writeText(url); toast('Webhook 地址已复制'); }
+  catch { prompt('复制下面的地址', url); }
+};
+$('clearLogs').onclick = async () => {
+  if (!confirm('清空全部请求日志？')) return;
+  try { await api('/api/logs', { method: 'DELETE' }); load(); toast('日志已清空'); }
+  catch (error) { toast(error.message, true); }
+};
+
+$('closeCookie').onclick = closeCookieGuide;
+$('cookieLayer').onclick = (event) => { if (event.target === $('cookieLayer')) closeCookieGuide(); };
+$('parseCookie').onclick = () => { renderParsedCookie(); };
+$('saveCookie').onclick = () => saveCookie(false);
+$('saveTestCookie').onclick = () => saveCookie(true);
+$('toggleCookie').onclick = () => {
+  state.cookieMasked = !state.cookieMasked;
+  $('cookieText').classList.toggle('is-masked', state.cookieMasked);
+  $('toggleCookie').textContent = state.cookieMasked ? '显示' : '隐藏';
+};
+$('pasteCookie').onclick = async () => {
+  try {
+    const text = await navigator.clipboard.readText();
+    if (!text.trim()) { toast('剪贴板是空的', true); return; }
+    $('cookieText').value = text;
+    renderParsedCookie();
+    toast('已从剪贴板粘贴');
+  } catch {
+    toast('浏览器不允许读取剪贴板，请手动粘贴', true);
+  }
+};
+$('openCookieUrl').onclick = () => {
+  const guide = GUIDES[state.cookieEditing];
+  if (guide?.url) window.open(guide.url, '_blank', 'noopener');
+};
+$('copyCookieUrl').onclick = async () => {
+  const guide = GUIDES[state.cookieEditing];
+  if (!guide?.url) return;
+  try { await navigator.clipboard.writeText(guide.url); toast('登录网址已复制'); }
+  catch { prompt('复制下面的网址', guide.url); }
+};
+$('goTemplate').onclick = () => {
+  const id = state.cookieEditing;
+  closeCookieGuide();
+  if (id) openDrawer(id);
+};
+
+load();
+setInterval(() => { if (!document.hidden) load(); }, 15000);
+</script>
+</body>
+</html>
